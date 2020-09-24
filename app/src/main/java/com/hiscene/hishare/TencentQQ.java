@@ -10,7 +10,12 @@ import com.tencent.tauth.Tencent;
 
 import org.json.JSONObject;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 import java.io.StreamTokenizer;
+import java.net.HttpURLConnection;
+import java.net.URL;
 
 public class TencentQQ {
 
@@ -55,12 +60,73 @@ public class TencentQQ {
         m_Tencent.logout(m_Activity);
     }
 
-    //登录成功回调
-    public static void LoginCallback(JSONObject jsonObject) {
-        Log.d(TAG, "TencentQQ/LoginCallBack:" + jsonObject.toString());
-        InitOpenidAndToken(jsonObject);
+    public  static boolean CheckAutorCaild()
+    {
+        return  m_Tencent.isSessionValid();
+    }
 
-        JSONObject data=SetSlefData(jsonObject);
+    //刷新票据
+    public static JSONObject RefreshSession()
+    {
+        JSONObject jsonObject=m_Tencent.loadSession(APP_ID);
+        if (jsonObject==null)
+        {
+            Login();
+        }
+        else
+        {
+            m_Tencent.initSessionCache(jsonObject);
+        }
+
+        Log.d(TAG,"TencentQQ/JSONObject()/"+jsonObject.toString());
+
+        return  SetSlefData(jsonObject);
+    }
+
+    //登录成功回调
+    public static void LoginCallback(final JSONObject jsonObject) {
+        Log.d(TAG, "TencentQQ/LoginCallBack:" + jsonObject.toString());
+
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                InitOpenidAndToken(jsonObject);
+                JSONObject data=SetSlefData(jsonObject);
+                HiShareHelper.SendPlatformMessageToUnity(MessageCode.QQLogoinCallBack,data.toString());
+            }
+        }).start();
+    }
+
+    public static String GetUinionid(String token)
+    {
+        String unionid="";
+
+        try {
+
+            URL url=new URL("https://graph.qq.com/oauth2.0/me?access_token="+token+"&unionid=1");
+            HttpURLConnection connection=(HttpURLConnection)url.openConnection();
+            connection.setRequestMethod("GET");
+            connection.setConnectTimeout(5000);
+            connection.setReadTimeout(5000);
+
+            int code=connection.getResponseCode();
+            if (code==HttpURLConnection.HTTP_OK)
+            {
+                InputStream is= connection.getInputStream();
+                byte[] data=readStream(is);
+                String json=new String(data);
+                json =json.replace("(","").replace(")","").replace("callback","");
+                JSONObject jsonObject=new JSONObject(json);
+                unionid=jsonObject.getString("unionid");
+            }
+        }
+        catch (Exception e)
+        {
+            Log.d(TAG, "TencentQQ/GetUiniodid()/获取Unionid失败！" + e);
+        }
+
+        return  unionid;
+
     }
 
     //封装成自己的数据
@@ -73,7 +139,7 @@ public class TencentQQ {
             String paytoken = data.getString("pay_token");
             String pf = data.getString("pfkey");
             String expirestime = data.getString(Constants.PARAM_EXPIRES_TIME);
-            String unionid = "";
+            String unionid = GetUinionid(token);
 
             jsonObject.put("openId", openId);
             jsonObject.put("token", token);
@@ -107,6 +173,21 @@ public class TencentQQ {
         {
             Log.d(TAG,"TencentQQ/InitOpenidAndToken/Exception:"+e);
         }
+    }
+
+    private  static  byte[] readStream(InputStream inputStream) throws  Exception
+    {
+        ByteArrayOutputStream bout =new ByteArrayOutputStream();
+        byte[] buffet=new byte[1024];
+        int len=0;
+        while ((len=inputStream.read(buffet))!=-1)
+        {
+            bout.write(buffet,0,len);
+        }
+
+        bout.close();
+        inputStream.close();
+        return  bout.toByteArray();
     }
 
 }

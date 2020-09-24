@@ -1,7 +1,9 @@
 package com.hiscene.hishare;
 
+import android.annotation.TargetApi;
 import android.app.ActivityManager;
 import android.content.Context;
+import android.os.Build;
 import android.os.Debug;
 import android.os.TestLooperManager;
 import android.util.Log;
@@ -38,6 +40,68 @@ public class HiShareHelper
         UnityPlayer.UnitySendMessage(m_UnityObjectName, m_Methodname, msg);
     }
 
+    //Unity发给平台的消息
+    public static void SendUnityMessageToPlatform(int iMsgCode,String... params)
+    {
+        MessageCode msgCode = MessageCode.values()[iMsgCode];
+
+        switch (msgCode) {
+
+            case QQLogin://QQ登录
+
+                break;
+
+            case QQLogout://QQ注销登录
+
+                break;
+
+            case WxLogin://微信登录
+
+                break;
+
+            case WxLogout://微信注销登录
+
+                break;
+        }
+    }
+
+    //从android获取Int类型
+    public static  int GetIntFromPlatform(MessageCode msgCode )
+    {
+        return 0;
+    }
+
+    //从android获取String类型
+    public static  String GetStingFromPlatform(MessageCode msgCode)
+    {
+//        switch (msgCode)
+//        {
+//            case MessageCode.QQCheckAutorCaild://QQ授权是否过期
+//                return String.valueOf(TencentQQ.CheckAutorCaild()).toString();
+//
+//            case MessageCode.QQRefreshSession://刷新QQ票据
+//                return TencentQQ.RefreshSession().toString();
+//
+//        }
+
+        return  "";
+    }
+
+    //从android获取Long类型
+    public static long GetLongFromPlatform(MessageCode msgCode) {
+        switch (msgCode) {
+            case GetSystemAvailableMemory://获取当前系统可用内存
+                return GetSystemAvailableMemory();
+
+            case GetUsingMemory://获取使用内存
+                return GetUsingMemory();
+
+            case GetTotalMemory://获取总内存
+                return GetTotalMemory();
+        }
+
+        return  0;
+    }
 
     //获取当前系统可用内存
     private static long GetSystemAvailableMemory() {
